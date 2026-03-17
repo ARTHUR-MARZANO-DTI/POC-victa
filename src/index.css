@@ -28,3 +28,9 @@
   animation: slideDown 0.3s ease-out;
   overflow: hidden;
 }
+
+/* Uncertain node styling */
+.node-uncertain {
+  border-style: dashed !important;
+  opacity: 0.85;
+}
