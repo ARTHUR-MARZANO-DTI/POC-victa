@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+/* React Flow base styles */
+.react-flow__node {
+  cursor: pointer;
+}
+
+.react-flow__attribution {
+  display: none !important;
+}
