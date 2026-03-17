@@ -6,6 +6,7 @@ import ReactFlow, {
   Controls,
   Handle,
   Position,
+  MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -20,6 +21,8 @@ import {
   buildFlowGraph,
   getHistoryStats,
   calculateGoalSeek,
+  traceDecisions,
+  applyDepOverrides,
 } from './engine.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -60,6 +63,21 @@ function CustomNode({ data }) {
       )}
       {data.historyAvg !== undefined && (
         <div className="mt-0.5 text-[10px] opacity-70">📊 Hist: {fmtTotal(data.historyAvg)}m ({data.historyCount}p)</div>
+      )}
+      {data.traceEntries?.length > 0 && (
+        <div className="mt-1.5 pt-1.5 border-t border-white/20 text-left space-y-0.5">
+          {data.traceEntries.map((t, i) => (
+            <div key={i} className={`text-[9px] leading-tight ${t.matched ? 'opacity-90' : 'opacity-40 line-through'}`}>
+              {t.isUnconditional
+                ? '✦ Sempre ativa'
+                : `${t.matched ? '✓' : '✗'} ${(t.questionText || '').slice(0, 30)}${(t.questionText || '').length > 30 ? '…' : ''} = ${t.expectedValue === true ? 'Sim' : t.expectedValue === false ? 'Não' : `"${t.expectedValue}"`}`
+              }
+            </div>
+          ))}
+        </div>
+      )}
+      {data.isManual && (
+        <div className="mt-1 text-[10px] font-semibold text-blue-200 uppercase tracking-wider">✎ Manual</div>
       )}
       <Handle type="source" position={Position.Right} className="!bg-gray-300 !w-3 !h-3" />
     </div>
@@ -501,11 +519,17 @@ function SimulatorTab({ state, setState }) {
   const [selectedNode, setSelectedNode] = useState(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [mode, setMode] = useState('simulate');
+  const [depOverrides, setDepOverrides] = useState({ added: [], removed: [] });
+  const [manualTasks, setManualTasks] = useState([]);
+  const [showAddTask, setShowAddTask] = useState(false);
 
   const switchRegion = (newId) => {
     setRegionId(newId);
     setAnswers({});
     setOverrides({});
+    setDepOverrides({ added: [], removed: [] });
+    setManualTasks([]);
   };
 
   const regionQuestions = useMemo(
@@ -552,6 +576,12 @@ function SimulatorTab({ state, setState }) {
     [state.tasks, regionId],
   );
 
+  // Apply manual dependency overrides (edit mode)
+  const adjustedMap = useMemo(
+    () => applyDepOverrides(activeMap, depOverrides.added, depOverrides.removed, manualTasks),
+    [activeMap, depOverrides, manualTasks],
+  );
+
   // Calculate range (min/default/max) + critical path
   const {
     totalDefault,
@@ -561,17 +591,23 @@ function SimulatorTab({ state, setState }) {
     schedule,
     taskEntries,
   } = useMemo(
-    () => calculateRange(activeMap, regionTasks, overrides),
-    [activeMap, regionTasks, overrides],
+    () => calculateRange(adjustedMap, regionTasks, overrides),
+    [adjustedMap, regionTasks, overrides],
   );
 
   // Total cost
   const totalCost = useMemo(() => {
     const catalog = Object.fromEntries(regionTasks.map((t) => [t.id, t]));
     let sum = 0;
-    activeMap.forEach((_data, id) => { sum += catalog[id]?.estimated_cost || 0; });
+    adjustedMap.forEach((_data, id) => { sum += catalog[id]?.estimated_cost || 0; });
     return sum;
-  }, [activeMap, regionTasks]);
+  }, [adjustedMap, regionTasks]);
+
+  // Trace decisions (for trace mode)
+  const traceData = useMemo(
+    () => mode === 'trace' ? traceDecisions(state.rules, effectiveAnswers, regionId, state.questions) : new Map(),
+    [mode, state.rules, effectiveAnswers, regionId, state.questions],
+  );
 
   // Build React Flow graph
   useEffect(() => {
@@ -590,19 +626,79 @@ function SimulatorTab({ state, setState }) {
         node.data.historyAvg = entry[1].historyAvg;
         node.data.historyCount = entry[1].historyCount;
       }
+      if (mode === 'trace') node.data.traceEntries = traceData.get(node.id) || [];
+      if (manualTasks.includes(node.id)) node.data.isManual = true;
+      node.data.mode = mode;
     });
+
+    if (mode === 'edit') {
+      e.forEach((edge) => {
+        edge.style = { ...edge.style, strokeWidth: (edge.style?.strokeWidth || 2) + 1 };
+        edge.interactionWidth = 20;
+      });
+    }
 
     setNodes(n);
     setEdges(e);
-  }, [taskEntries, regionTasks, criticalIds, uncertainTasks, conditionalTasks, schedule, state.history, regionId, setNodes, setEdges]);
+  }, [taskEntries, regionTasks, criticalIds, uncertainTasks, conditionalTasks, schedule, state.history, regionId, setNodes, setEdges, mode, traceData, manualTasks]);
 
-  const handleNodeClick = useCallback((_ev, node) => setSelectedNode(node), []);
+  const handleNodeClick = useCallback((_ev, node) => {
+    if (mode === 'edit') return;
+    setSelectedNode(node);
+  }, [mode]);
   const handleSave = useCallback((id, dur) => {
     setOverrides((p) => ({ ...p, [id]: dur }));
     setSelectedNode(null);
   }, []);
 
   const setAnswer = useCallback((qId, val) => setAnswers((p) => ({ ...p, [qId]: val })), []);
+
+  // Edit mode: connect nodes
+  const handleConnect = useCallback((params) => {
+    if (mode !== 'edit') return;
+    const { source, target } = params;
+    setEdges((eds) => [...eds, {
+      id: `e-manual-${source}-${target}`, source, target, type: 'smoothstep', animated: true,
+      style: { stroke: '#3b82f6', strokeWidth: 3, strokeDasharray: '5 5' },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
+    }]);
+    setDepOverrides((prev) => {
+      const wasRemoved = prev.removed.findIndex((e) => e.source === source && e.target === target);
+      if (wasRemoved >= 0) return { ...prev, removed: prev.removed.filter((_, i) => i !== wasRemoved) };
+      if (prev.added.some((e) => e.source === source && e.target === target)) return prev;
+      return { ...prev, added: [...prev.added, { source, target }] };
+    });
+  }, [mode, setEdges]);
+
+  // Edit mode: click edge to remove
+  const handleEdgeClick = useCallback((_ev, edge) => {
+    if (mode !== 'edit') return;
+    setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+    setDepOverrides((prev) => {
+      const wasAdded = prev.added.findIndex((e) => e.source === edge.source && e.target === edge.target);
+      if (wasAdded >= 0) return { ...prev, added: prev.added.filter((_, i) => i !== wasAdded) };
+      if (prev.removed.some((e) => e.source === edge.source && e.target === edge.target)) return prev;
+      return { ...prev, removed: [...prev.removed, { source: edge.source, target: edge.target }] };
+    });
+  }, [mode, setEdges]);
+
+  // Edit mode: add/remove manual tasks
+  const handleAddManualTask = useCallback((taskId) => {
+    setManualTasks((prev) => prev.includes(taskId) ? prev : [...prev, taskId]);
+    setShowAddTask(false);
+  }, []);
+  const handleRemoveManualTask = useCallback((taskId) => {
+    setManualTasks((prev) => prev.filter((id) => id !== taskId));
+    setDepOverrides((prev) => ({
+      added: prev.added.filter((e) => e.source !== taskId && e.target !== taskId),
+      removed: prev.removed.filter((e) => e.source !== taskId && e.target !== taskId),
+    }));
+  }, []);
+  const resetManualOverrides = useCallback(() => {
+    setDepOverrides({ added: [], removed: [] });
+    setManualTasks([]);
+  }, []);
+  const overrideCount = depOverrides.added.length + depOverrides.removed.length + manualTasks.length;
 
   // Active rules count
   const activeRuleCount = useMemo(() => {
@@ -625,16 +721,20 @@ function SimulatorTab({ state, setState }) {
       regionName: region ? `${region.name}/${region.state}` : regionId,
       answers: { ...answers },
       overrides: { ...overrides },
+      depOverrides: { added: [...depOverrides.added], removed: [...depOverrides.removed] },
+      manualTasks: [...manualTasks],
       totalDefault, totalMin, totalMax,
-      taskCount: activeMap.size,
+      taskCount: adjustedMap.size,
     };
     setState((s) => ({ ...s, scenarios: [...s.scenarios, sc] }));
-  }, [answers, overrides, regionId, totalDefault, totalMin, totalMax, activeMap.size, state.regions, setState]);
+  }, [answers, overrides, depOverrides, manualTasks, regionId, totalDefault, totalMin, totalMax, adjustedMap.size, state.regions, setState]);
 
   const handleLoadScenario = useCallback((sc) => {
     setRegionId(sc.regionId);
     setAnswers(sc.answers);
     setOverrides(sc.overrides);
+    setDepOverrides(sc.depOverrides || { added: [], removed: [] });
+    setManualTasks(sc.manualTasks || []);
   }, []);
 
   const handleDeleteScenario = useCallback((id) => {
@@ -738,7 +838,7 @@ function SimulatorTab({ state, setState }) {
           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Resultado do Motor</h4>
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="bg-blue-50 rounded-xl p-2">
-              <div className="text-lg font-extrabold text-blue-700">{activeMap.size}</div>
+              <div className="text-lg font-extrabold text-blue-700">{adjustedMap.size}</div>
               <div className="text-[10px] text-blue-500">Etapas</div>
             </div>
             <div className="bg-amber-50 rounded-xl p-2">
@@ -816,14 +916,117 @@ function SimulatorTab({ state, setState }) {
             </div>
           </div>
         )}
+
+        {/* Mode Toggle */}
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <div className="bg-white rounded-lg shadow-lg border border-gray-200 flex p-0.5">
+            {[
+              { key: 'simulate', label: 'Simular', icon: '🚀' },
+              { key: 'edit', label: 'Editar', icon: '✏️' },
+              { key: 'trace', label: 'Decisões', icon: '🔍' },
+            ].map((m) => (
+              <button key={m.key} onClick={() => { setMode(m.key); setShowAddTask(false); }}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all cursor-pointer ${mode === m.key ? 'bg-blue-600 text-white shadow' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}>
+                <span className="mr-1">{m.icon}</span>{m.label}
+              </button>
+            ))}
+          </div>
+          {overrideCount > 0 && (
+            <button onClick={resetManualOverrides} className="bg-amber-100 text-amber-700 px-2.5 py-1.5 text-xs rounded-lg border border-amber-200 hover:bg-amber-200 cursor-pointer font-medium" title="Reverter edições manuais">
+              ↺ Reset ({overrideCount})
+            </button>
+          )}
+        </div>
+
+        {/* Edit Mode Controls */}
+        {mode === 'edit' && (
+          <div className="absolute bottom-4 right-4 z-10 flex flex-col items-end gap-2">
+            <button onClick={() => setShowAddTask(!showAddTask)} className="bg-blue-600 text-white w-10 h-10 rounded-full shadow-lg flex items-center justify-center text-xl hover:bg-blue-700 cursor-pointer transition-transform hover:scale-110" title="Adicionar etapa">+</button>
+            {showAddTask && (
+              <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-3 w-[260px] animate-fadeIn">
+                <p className="text-xs font-semibold text-gray-700 mb-2">Adicionar Etapa ao Diagrama</p>
+                <div className="max-h-[200px] overflow-auto space-y-0.5">
+                  {regionTasks.filter((t) => !adjustedMap.has(t.id)).map((t) => (
+                    <button key={t.id} onClick={() => handleAddManualTask(t.id)} className="w-full text-left px-2 py-1.5 text-xs text-gray-700 hover:bg-blue-50 rounded cursor-pointer transition-colors">
+                      {t.name} <span className="text-gray-400">({t.default_duration_months}m)</span>
+                    </button>
+                  ))}
+                  {regionTasks.filter((t) => !adjustedMap.has(t.id)).length === 0 && (
+                    <p className="text-xs text-gray-400 py-2 text-center">Todas as etapas já estão no diagrama</p>
+                  )}
+                </div>
+                {manualTasks.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-gray-100">
+                    <p className="text-[10px] text-gray-400 mb-1">Adicionadas manualmente:</p>
+                    {manualTasks.map((tid) => {
+                      const t = regionTasks.find((x) => x.id === tid);
+                      return (
+                        <div key={tid} className="flex justify-between items-center text-xs py-0.5">
+                          <span className="text-gray-600">{t?.name || tid}</span>
+                          <button onClick={() => handleRemoveManualTask(tid)} className="text-red-400 hover:text-red-600 cursor-pointer">✕</button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            <div className="bg-white/95 rounded-lg shadow border border-gray-200 px-3 py-2 text-[10px] text-gray-500 max-w-[260px]">
+              <p className="font-semibold text-gray-700 mb-0.5">Modo Edição</p>
+              <p>• Clique em uma <strong>linha</strong> para removê-la</p>
+              <p>• Arraste do <strong>●</strong> de um nó até outro para conectar</p>
+              <p>• Use o <strong>+</strong> para adicionar etapas</p>
+            </div>
+          </div>
+        )}
+
+        {/* Trace Mode Panel */}
+        {mode === 'trace' && traceData.size > 0 && (
+          <div className="absolute bottom-4 right-4 z-10 bg-white rounded-xl shadow-xl border border-gray-200 p-4 w-[340px] max-h-[350px] overflow-auto animate-fadeIn">
+            <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">🔍 Rastreamento de Decisões</p>
+            <p className="text-[10px] text-gray-400 mb-3">Cada nó mostra quais perguntas/regras o ativaram ou poderiam ativá-lo.</p>
+            <div className="space-y-2">
+              {[...traceData.entries()].filter(([tid]) => adjustedMap.has(tid)).map(([taskId, entries]) => {
+                const task = regionTasks.find((t) => t.id === taskId);
+                if (!task) return null;
+                const matchedCount = entries.filter((e) => e.matched).length;
+                return (
+                  <div key={taskId} className="p-2 bg-gray-50 rounded-lg border border-gray-100">
+                    <p className="text-[11px] font-semibold text-gray-700">{task.name} <span className="text-gray-400 font-normal">({matchedCount} regra{matchedCount !== 1 ? 's' : ''} ativa{matchedCount !== 1 ? 's' : ''})</span></p>
+                    {entries.map((e, i) => (
+                      <p key={i} className={`text-[10px] mt-0.5 ${e.matched ? 'text-green-700' : 'text-gray-400 line-through'}`}>
+                        {e.isUnconditional
+                          ? '✦ Sempre ativa'
+                          : `${e.matched ? '✓' : '✗'} "${(e.questionText || '').slice(0, 35)}" = ${e.expectedValue === true ? 'Sim' : e.expectedValue === false ? 'Não' : `"${e.expectedValue}"`}`}
+                      </p>
+                    ))}
+                  </div>
+                );
+              })}
+              {(() => {
+                const inactiveCount = [...traceData.entries()].filter(([tid]) => !adjustedMap.has(tid)).length;
+                return inactiveCount > 0 ? (
+                  <p className="mt-1 pt-2 border-t border-gray-100 text-[10px] text-gray-400">
+                    + {inactiveCount} etapa(s) inativa(s) por condições não atendidas
+                  </p>
+                ) : null;
+              })()}
+            </div>
+          </div>
+        )}
+
         <ReactFlow
           nodes={nodes} edges={edges}
           onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
           onNodeClick={handleNodeClick}
+          onEdgeClick={handleEdgeClick}
+          onConnect={handleConnect}
           nodeTypes={nodeTypes}
           fitView fitViewOptions={{ padding: 0.4 }}
           minZoom={0.15} maxZoom={1.5}
           proOptions={{ hideAttribution: true }}
+          nodesConnectable={mode === 'edit'}
+          elementsSelectable={mode === 'edit'}
         >
           <Background color="#e2e8f0" gap={20} size={1} />
           <Controls showInteractive={false} className="!bg-white !shadow-lg !border !border-gray-200 !rounded-xl" />

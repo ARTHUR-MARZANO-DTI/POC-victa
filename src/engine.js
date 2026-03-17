@@ -408,3 +408,66 @@ export function calculateGoalSeek(targetDate, totalMonths, schedule, taskCatalog
     deadlines,
   };
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TRACE DECISIONS — Map each task to the question(s)/rule(s) that control it
+// ═══════════════════════════════════════════════════════════════════════════════
+export function traceDecisions(rules, answers, regionId, questions) {
+  const regionRules = rules.filter((r) => !r.region_id || r.region_id === regionId);
+  const qMap = Object.fromEntries(questions.map((q) => [q.id, q]));
+  const trace = new Map();
+
+  regionRules.forEach((r) => {
+    let matched = false;
+    if (!r.if_question_id) {
+      matched = true;
+    } else {
+      const answer = answers[r.if_question_id];
+      matched = answer === 'unknown' || answer === r.equals_value;
+    }
+
+    const entry = {
+      ruleId: r.id,
+      questionId: r.if_question_id,
+      questionText: r.if_question_id ? (qMap[r.if_question_id]?.text || r.if_question_id) : null,
+      expectedValue: r.equals_value,
+      answer: r.if_question_id ? answers[r.if_question_id] : null,
+      matched,
+      isUnconditional: !r.if_question_id,
+    };
+
+    if (!trace.has(r.then_add_task_id)) trace.set(r.then_add_task_id, []);
+    trace.get(r.then_add_task_id).push(entry);
+  });
+
+  return trace;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// APPLY DEP OVERRIDES — Manual edge additions/removals on top of rule engine
+// ═══════════════════════════════════════════════════════════════════════════════
+export function applyDepOverrides(activeMap, addedEdges, removedEdges, manualTaskIds) {
+  const result = new Map();
+
+  activeMap.forEach((data, id) => {
+    const deps = new Set(data.depends_on);
+    removedEdges.forEach(({ source, target }) => {
+      if (target === id) deps.delete(source);
+    });
+    result.set(id, { ...data, depends_on: deps });
+  });
+
+  manualTaskIds.forEach((id) => {
+    if (!result.has(id)) {
+      result.set(id, { depends_on: new Set() });
+    }
+  });
+
+  addedEdges.forEach(({ source, target }) => {
+    if (result.has(target) && result.has(source)) {
+      result.get(target).depends_on.add(source);
+    }
+  });
+
+  return result;
+}
