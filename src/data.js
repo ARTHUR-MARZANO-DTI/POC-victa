@@ -1,191 +1,444 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// DATA.JS — Estado Inicial ("Banco de Dados" JSON) com dados reais dos PDFs
-//   Regions, Questions, Tasks, Rules, History, Scenarios
+// DATA.JS — Modelo de dados da nova arquitetura (sem motor de regras)
+//   Localities, Questions (com sub-perguntas), Steps (globais, com filhos),
+//   Templates, Simulations
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const INITIAL_STATE = {
-  // ── REGIÕES ──
-  regions: [
-    { id: 'fortaleza', name: 'Fortaleza', state: 'CE' },
-    { id: 'sao_paulo', name: 'São Paulo', state: 'SP' },
+  // ── LOCALIDADES ──
+  localities: [
+    { id: 'fortaleza', name: 'Fortaleza', state: 'CE', planoDiretorFileName: null, planoDiretorDataUrl: null, planoDiretorInsights: null },
+    { id: 'sao_paulo', name: 'São Paulo', state: 'SP', planoDiretorFileName: null, planoDiretorDataUrl: null, planoDiretorInsights: null },
+    { id: 'belo_horizonte', name: 'Belo Horizonte', state: 'MG', planoDiretorFileName: null, planoDiretorDataUrl: null, planoDiretorInsights: null },
+    { id: 'recife', name: 'Recife', state: 'PE', planoDiretorFileName: null, planoDiretorDataUrl: null, planoDiretorInsights: null },
+  ],
+
+  // ── ETAPAS (GLOBAIS) ──
+  steps: [
+    { id: 's_comite', name: 'Comitê de Aquisição', area: 'Gestão', defaultDurationMonths: 0, minDurationMonths: 0, maxDurationMonths: 0, internalMonths: 0, externalMonths: 0, estimatedCost: 0, details: 'Marco inicial — deliberação interna de aquisição do terreno.', childStepId: null },
+    { id: 's_demolicao', name: 'Demolição', area: 'Obra', defaultDurationMonths: 6, minDurationMonths: 4, maxDurationMonths: 8, internalMonths: 1, externalMonths: 5, estimatedCost: 150000, details: 'Demolição de edificações existentes no terreno. Inclui licença de demolição.', childStepId: 's_lic_demolicao' },
+    { id: 's_lic_demolicao', name: 'Licença de Demolição', area: 'Licenciamento', defaultDurationMonths: 2, minDurationMonths: 1, maxDurationMonths: 4, internalMonths: 0.5, externalMonths: 1.5, estimatedCost: 8000, details: 'Licença obrigatória para iniciar demolição. Tramita junto ao município.', childStepId: null },
+    { id: 's_projetos', name: 'Projetos Iniciais', area: 'Projetos', defaultDurationMonths: 2, minDurationMonths: 1.5, maxDurationMonths: 3, internalMonths: 2, externalMonths: 0, estimatedCost: 200000, details: 'Elaboração dos projetos arquitetônico, estrutural e de instalações.', childStepId: null },
+    { id: 's_bombeiros_ce', name: 'Aprovação Bombeiros (CBMCE)', area: 'Licenciamento', defaultDurationMonths: 4.5, minDurationMonths: 3, maxDurationMonths: 6, internalMonths: 0.5, externalMonths: 4, estimatedCost: 15000, details: 'Análise e aprovação do projeto de prevenção e combate a incêndio pelo CBMCE.', childStepId: null },
+    { id: 's_bombeiros_sp', name: 'AVCB (Corpo de Bombeiros SP)', area: 'Licenciamento', defaultDurationMonths: 3, minDurationMonths: 2, maxDurationMonths: 5, internalMonths: 0.5, externalMonths: 2.5, estimatedCost: 20000, details: 'Auto de Vistoria do Corpo de Bombeiros de São Paulo.', childStepId: null },
+    { id: 's_las', name: 'Licença Ambiental Simplificada (LAS)', area: 'Ambiental', defaultDurationMonths: 7, minDurationMonths: 5, maxDurationMonths: 10, internalMonths: 1, externalMonths: 6, estimatedCost: 25000, details: 'Licença ambiental para empreendimentos de menor impacto. Tramita na SEMACE/SEUMA.', childStepId: null },
+    { id: 's_lp_li', name: 'Licença Ambiental Regular (LP+LI)', area: 'Ambiental', defaultDurationMonths: 10, minDurationMonths: 8, maxDurationMonths: 14, internalMonths: 2, externalMonths: 8, estimatedCost: 80000, details: 'Licença Prévia + Licença de Instalação para empreendimentos de maior porte (> 40.000m² ou > 49 árvores).', childStepId: null },
+    { id: 's_aop', name: 'Análise de Orientação Prévia (AOP/SEUMA)', area: 'Licenciamento', defaultDurationMonths: 3.5, minDurationMonths: 2, maxDurationMonths: 5.7, internalMonths: 0.5, externalMonths: 3, estimatedCost: 10000, details: 'Consulta prévia obrigatória para projetos > 300 unidades em Fortaleza.', childStepId: null },
+    { id: 's_alvara', name: 'Alvará de Construção', area: 'Licenciamento', defaultDurationMonths: 3, minDurationMonths: 2, maxDurationMonths: 5, internalMonths: 0.5, externalMonths: 2.5, estimatedCost: 30000, details: 'Autorização municipal para início da obra.', childStepId: null },
+    { id: 's_ri', name: 'Registro de Incorporação (RI)', area: 'Jurídico', defaultDurationMonths: 1, minDurationMonths: 0.5, maxDurationMonths: 2, internalMonths: 0.5, externalMonths: 0.5, estimatedCost: 20000, details: 'Registro do memorial de incorporação no cartório de imóveis.', childStepId: null },
+    { id: 's_iphan', name: 'Aprovação IPHAN', area: 'Patrimônio', defaultDurationMonths: 6, minDurationMonths: 4, maxDurationMonths: 12, internalMonths: 1, externalMonths: 5, estimatedCost: 35000, details: 'Aprovação do IPHAN quando há imóvel tombado ou de interesse histórico no lote ou entorno.', childStepId: null },
+    { id: 's_eiv', name: 'Estudo de Impacto de Vizinhança (EIV)', area: 'Urbanismo', defaultDurationMonths: 4, minDurationMonths: 3, maxDurationMonths: 8, internalMonths: 2, externalMonths: 2, estimatedCost: 60000, details: 'Estudo obrigatório para empreendimentos com impacto significativo na vizinhança.', childStepId: null },
+    { id: 's_eit', name: 'Estudo de Impacto no Trânsito (EIT)', area: 'Urbanismo', defaultDurationMonths: 3, minDurationMonths: 2, maxDurationMonths: 5, internalMonths: 1, externalMonths: 2, estimatedCost: 40000, details: 'Estudo obrigatório quando o empreendimento gera significativo impacto no trânsito.', childStepId: null },
+    { id: 's_regularizacao', name: 'Regularização da Matrícula', area: 'Jurídico', defaultDurationMonths: 4, minDurationMonths: 2, maxDurationMonths: 8, internalMonths: 1, externalMonths: 3, estimatedCost: 25000, details: 'Regularização da matrícula do terreno no cartório quando não está regular.', childStepId: null },
+    { id: 's_zia_estudo', name: 'Estudo Ambiental ZIA (SEUMA)', area: 'Ambiental', defaultDurationMonths: 5, minDurationMonths: 3, maxDurationMonths: 8, internalMonths: 2, externalMonths: 3, estimatedCost: 45000, details: 'Estudo ambiental específico para terrenos em Zona de Interesse Ambiental (ZIA).', childStepId: null },
+    { id: 's_lic_ambiental_sp', name: 'Licença Ambiental (CETESB)', area: 'Ambiental', defaultDurationMonths: 8, minDurationMonths: 6, maxDurationMonths: 12, internalMonths: 2, externalMonths: 6, estimatedCost: 50000, details: 'Licença ambiental via CETESB para empreendimentos em SP.', childStepId: null },
+    { id: 's_alvara_sp', name: 'Alvará de Aprovação e Execução', area: 'Licenciamento', defaultDurationMonths: 4, minDurationMonths: 3, maxDurationMonths: 6, internalMonths: 1, externalMonths: 3, estimatedCost: 40000, details: 'Alvará unificado de aprovação e execução da prefeitura de SP.', childStepId: null },
+    { id: 's_ri_sp', name: 'Registro de Incorporação (RI) SP', area: 'Jurídico', defaultDurationMonths: 1.5, minDurationMonths: 1, maxDurationMonths: 3, internalMonths: 0.5, externalMonths: 1, estimatedCost: 25000, details: 'Registro de incorporação específico para SP.', childStepId: null },
+    { id: 's_outorga', name: 'Outorga Onerosa (SMUL)', area: 'Urbanismo', defaultDurationMonths: 3, minDurationMonths: 2, maxDurationMonths: 5, internalMonths: 0.5, externalMonths: 2.5, estimatedCost: 500000, details: 'Outorga onerosa do direito de construir — contrapartida para construir acima do coeficiente básico.', childStepId: null },
+    { id: 's_operacao_urbana', name: 'Aprovação Op. Urbana Consorciada', area: 'Urbanismo', defaultDurationMonths: 6, minDurationMonths: 4, maxDurationMonths: 10, internalMonths: 1, externalMonths: 5, estimatedCost: 100000, details: 'Aprovação dentro de Operação Urbana Consorciada.', childStepId: null },
   ],
 
   // ── PERGUNTAS ──
+  // type: 'boolean' | 'number_gt' | 'number_lt' | 'select'
+  // localityId: null = pergunta geral; string = específica de uma localidade
+  // stepsToAdd: IDs das etapas adicionadas quando triggerValue bate
+  // subQuestions: perguntas-filha que aparecem condicionalmente
   questions: [
     // ═══ Fortaleza/CE ═══
-    { id: 'q1', text: 'Haverá demolição no terreno?', type: 'boolean', region_id: 'fortaleza', visible_when: null, eliminatory: null, options: null },
-    { id: 'q2', text: 'A área total construída é acima de 40.000m²?', type: 'boolean', region_id: 'fortaleza', visible_when: null, eliminatory: null, options: null },
-    { id: 'q3', text: 'Haverá supressão de mais de 49 árvores?', type: 'boolean', region_id: 'fortaleza', visible_when: null, eliminatory: null, options: null },
-    { id: 'q4', text: 'O projeto tem mais de 300 unidades?', type: 'boolean', region_id: 'fortaleza', visible_when: null, eliminatory: null, options: null },
+    { id: 'q1', text: 'Haverá demolição no terreno?', type: 'boolean', localityId: 'fortaleza', eliminatory: null, stepsToAdd: ['s_demolicao'], triggerValue: true, subQuestions: [] },
+    { id: 'q2', text: 'Qual a área total construída (m²)?', type: 'number_gt', localityId: 'fortaleza', eliminatory: null, threshold: 40000, unit: 'm²', stepsToAdd: ['s_lp_li'], triggerValue: true, subQuestions: [] },
     {
-      id: 'q5', text: 'Qual a zona do terreno?', type: 'select', region_id: 'fortaleza', visible_when: null, eliminatory: null,
+      id: 'q3', text: 'Haverá supressão de árvores?', type: 'boolean', localityId: 'fortaleza', eliminatory: null,
+      stepsToAdd: [], triggerValue: true,
+      subQuestions: [
+        { id: 'q3_sub1', text: 'Quantas árvores serão suprimidas?', type: 'number_gt', threshold: 49, unit: 'árvores', stepsToAdd: ['s_lp_li'], triggerValue: true, eliminatory: null, subQuestions: [] },
+      ],
+    },
+    { id: 'q4', text: 'O projeto tem mais de 300 unidades?', type: 'boolean', localityId: 'fortaleza', eliminatory: null, stepsToAdd: ['s_aop'], triggerValue: true, subQuestions: [] },
+    {
+      id: 'q5', text: 'Qual a zona do terreno?', type: 'select', localityId: 'fortaleza', eliminatory: null,
       options: [
         { value: 'zo', label: 'Zona de Ocupação (ZO)' },
         { value: 'zia', label: 'Zona de Interesse Ambiental (ZIA)' },
         { value: 'zrm', label: 'Zona Residencial Mista (ZRM)' },
         { value: 'zc', label: 'Zona Comercial (ZC)' },
       ],
+      stepsToAdd: ['s_zia_estudo'], triggerValue: 'zia', subQuestions: [],
     },
-    { id: 'q6', text: 'O terreno está em Área de Preservação Permanente (APP)?', type: 'boolean', region_id: 'fortaleza', visible_when: null, eliminatory: { value: true, message: '⛔ Projeto INVIÁVEL: Terrenos em APP não podem receber edificações. A aquisição deve ser descartada.' }, options: null },
-    { id: 'q7', text: 'Existe imóvel tombado ou de interesse histórico (IPHAN) no lote ou entorno?', type: 'boolean', region_id: 'fortaleza', visible_when: null, eliminatory: null, options: null },
-    { id: 'q8', text: 'O empreendimento necessita de Estudo de Impacto de Vizinhança (EIV)?', type: 'boolean', region_id: 'fortaleza', visible_when: null, eliminatory: null, options: null },
-    { id: 'q9', text: 'O empreendimento gera significativo impacto no trânsito (EIT)?', type: 'boolean', region_id: 'fortaleza', visible_when: null, eliminatory: null, options: null },
+    { id: 'q6', text: 'O terreno está em Área de Preservação Permanente (APP)?', type: 'boolean', localityId: 'fortaleza', eliminatory: { value: true, message: '⛔ Projeto INVIÁVEL: Terrenos em APP não podem receber edificações.' }, stepsToAdd: [], triggerValue: true, subQuestions: [] },
+    { id: 'q7', text: 'Existe imóvel tombado ou de interesse histórico (IPHAN) no lote ou entorno?', type: 'boolean', localityId: 'fortaleza', eliminatory: null, stepsToAdd: ['s_iphan'], triggerValue: true, subQuestions: [] },
+    { id: 'q8', text: 'O empreendimento necessita de Estudo de Impacto de Vizinhança (EIV)?', type: 'boolean', localityId: 'fortaleza', eliminatory: null, stepsToAdd: ['s_eiv'], triggerValue: true, subQuestions: [] },
+    { id: 'q9', text: 'O empreendimento gera significativo impacto no trânsito (EIT)?', type: 'boolean', localityId: 'fortaleza', eliminatory: null, stepsToAdd: ['s_eit'], triggerValue: true, subQuestions: [] },
     {
-      id: 'q10', text: 'Tipo de empreendimento?', type: 'select', region_id: 'fortaleza', visible_when: null, eliminatory: null,
+      id: 'q10', text: 'Tipo de empreendimento?', type: 'select', localityId: 'fortaleza', eliminatory: null,
       options: [
         { value: 'residencial', label: 'Residencial' },
         { value: 'comercial', label: 'Comercial' },
         { value: 'misto', label: 'Uso Misto' },
       ],
+      stepsToAdd: [], triggerValue: null, subQuestions: [],
     },
-    { id: 'q11', text: 'O terreno possui matrícula regularizada?', type: 'boolean', region_id: 'fortaleza', visible_when: null, eliminatory: null, options: null },
+    { id: 'q11', text: 'O terreno possui matrícula regularizada?', type: 'boolean', localityId: 'fortaleza', eliminatory: null, stepsToAdd: ['s_regularizacao'], triggerValue: false, subQuestions: [] },
 
     // ═══ São Paulo/SP ═══
-    { id: 'q_sp1', text: 'Haverá demolição no terreno?', type: 'boolean', region_id: 'sao_paulo', visible_when: null, eliminatory: null, options: null },
-    { id: 'q_sp2', text: 'A área total construída é acima de 20.000m²?', type: 'boolean', region_id: 'sao_paulo', visible_when: null, eliminatory: null, options: null },
-    { id: 'q_sp3', text: 'O terreno está em Zona Especial de Proteção Ambiental (ZEPAM)?', type: 'boolean', region_id: 'sao_paulo', visible_when: null, eliminatory: { value: true, message: '⛔ Projeto INVIÁVEL em ZEPAM: Não é permitida nova edificação nesta zona.' }, options: null },
-    { id: 'q_sp4', text: 'O projeto necessita de outorga onerosa do direito de construir?', type: 'boolean', region_id: 'sao_paulo', visible_when: null, eliminatory: null, options: null },
-    { id: 'q_sp5', text: 'O terreno está em Operação Urbana Consorciada?', type: 'boolean', region_id: 'sao_paulo', visible_when: null, eliminatory: null, options: null },
+    { id: 'q_sp1', text: 'Haverá demolição no terreno?', type: 'boolean', localityId: 'sao_paulo', eliminatory: null, stepsToAdd: ['s_demolicao'], triggerValue: true, subQuestions: [] },
+    { id: 'q_sp2', text: 'Qual a área total construída (m²)?', type: 'number_gt', localityId: 'sao_paulo', eliminatory: null, threshold: 20000, unit: 'm²', stepsToAdd: [], triggerValue: true, subQuestions: [] },
+    { id: 'q_sp3', text: 'O terreno está em Zona Especial de Proteção Ambiental (ZEPAM)?', type: 'boolean', localityId: 'sao_paulo', eliminatory: { value: true, message: '⛔ Projeto INVIÁVEL em ZEPAM: Não é permitida nova edificação nesta zona.' }, stepsToAdd: [], triggerValue: true, subQuestions: [] },
+    { id: 'q_sp4', text: 'O projeto necessita de outorga onerosa do direito de construir?', type: 'boolean', localityId: 'sao_paulo', eliminatory: null, stepsToAdd: ['s_outorga'], triggerValue: true, subQuestions: [] },
+    { id: 'q_sp5', text: 'O terreno está em Operação Urbana Consorciada?', type: 'boolean', localityId: 'sao_paulo', eliminatory: null, stepsToAdd: ['s_operacao_urbana'], triggerValue: true, subQuestions: [] },
   ],
 
-  // ── ETAPAS (TASKS) ──
-  tasks: [
-    // ═══ Fortaleza/CE ═══
-    { id: 't_comite', name: 'Comitê de Aquisição', default_duration_months: 0, min_duration_months: 0, max_duration_months: 0, internal_months: 0, external_months: 0, estimated_cost: 0, region_id: 'fortaleza' },
-    { id: 't_demolicao', name: 'Demolição', default_duration_months: 6, min_duration_months: 4, max_duration_months: 8, internal_months: 1, external_months: 5, estimated_cost: 150000, region_id: 'fortaleza' },
-    { id: 't_projetos', name: 'Projetos Iniciais', default_duration_months: 2, min_duration_months: 1.5, max_duration_months: 3, internal_months: 2, external_months: 0, estimated_cost: 200000, region_id: 'fortaleza' },
-    { id: 't_bombeiros', name: 'Aprovação Bombeiros (CBMCE)', default_duration_months: 4.5, min_duration_months: 3, max_duration_months: 6, internal_months: 0.5, external_months: 4, estimated_cost: 15000, region_id: 'fortaleza' },
-    { id: 't_las', name: 'Licença Ambiental Simplificada (LAS)', default_duration_months: 7, min_duration_months: 5, max_duration_months: 10, internal_months: 1, external_months: 6, estimated_cost: 25000, region_id: 'fortaleza' },
-    { id: 't_lp_li', name: 'Licença Ambiental Regular (LP+LI)', default_duration_months: 10, min_duration_months: 8, max_duration_months: 14, internal_months: 2, external_months: 8, estimated_cost: 80000, region_id: 'fortaleza' },
-    { id: 't_aop', name: 'Análise de Orientação Prévia (AOP/SEUMA)', default_duration_months: 3.5, min_duration_months: 2, max_duration_months: 5.7, internal_months: 0.5, external_months: 3, estimated_cost: 10000, region_id: 'fortaleza' },
-    { id: 't_alvara', name: 'Alvará de Construção', default_duration_months: 3, min_duration_months: 2, max_duration_months: 5, internal_months: 0.5, external_months: 2.5, estimated_cost: 30000, region_id: 'fortaleza' },
-    { id: 't_ri', name: 'Registro de Incorporação (RI)', default_duration_months: 1, min_duration_months: 0.5, max_duration_months: 2, internal_months: 0.5, external_months: 0.5, estimated_cost: 20000, region_id: 'fortaleza' },
-    { id: 't_iphan', name: 'Aprovação IPHAN', default_duration_months: 6, min_duration_months: 4, max_duration_months: 12, internal_months: 1, external_months: 5, estimated_cost: 35000, region_id: 'fortaleza' },
-    { id: 't_eiv', name: 'Estudo de Impacto de Vizinhança (EIV)', default_duration_months: 4, min_duration_months: 3, max_duration_months: 8, internal_months: 2, external_months: 2, estimated_cost: 60000, region_id: 'fortaleza' },
-    { id: 't_eit', name: 'Estudo de Impacto no Trânsito (EIT)', default_duration_months: 3, min_duration_months: 2, max_duration_months: 5, internal_months: 1, external_months: 2, estimated_cost: 40000, region_id: 'fortaleza' },
-    { id: 't_regularizacao', name: 'Regularização da Matrícula', default_duration_months: 4, min_duration_months: 2, max_duration_months: 8, internal_months: 1, external_months: 3, estimated_cost: 25000, region_id: 'fortaleza' },
-    { id: 't_zia_estudo', name: 'Estudo Ambiental ZIA (SEUMA)', default_duration_months: 5, min_duration_months: 3, max_duration_months: 8, internal_months: 2, external_months: 3, estimated_cost: 45000, region_id: 'fortaleza' },
-
-    // ═══ São Paulo/SP ═══
-    { id: 't_sp_comite', name: 'Comitê de Aquisição', default_duration_months: 0, min_duration_months: 0, max_duration_months: 0, internal_months: 0, external_months: 0, estimated_cost: 0, region_id: 'sao_paulo' },
-    { id: 't_sp_demolicao', name: 'Demolição', default_duration_months: 5, min_duration_months: 3, max_duration_months: 7, internal_months: 1, external_months: 4, estimated_cost: 200000, region_id: 'sao_paulo' },
-    { id: 't_sp_projetos', name: 'Projetos Iniciais', default_duration_months: 3, min_duration_months: 2, max_duration_months: 4, internal_months: 3, external_months: 0, estimated_cost: 350000, region_id: 'sao_paulo' },
-    { id: 't_sp_bombeiros', name: 'AVCB (Corpo de Bombeiros SP)', default_duration_months: 3, min_duration_months: 2, max_duration_months: 5, internal_months: 0.5, external_months: 2.5, estimated_cost: 20000, region_id: 'sao_paulo' },
-    { id: 't_sp_lic_ambiental', name: 'Licença Ambiental (CETESB)', default_duration_months: 8, min_duration_months: 6, max_duration_months: 12, internal_months: 2, external_months: 6, estimated_cost: 50000, region_id: 'sao_paulo' },
-    { id: 't_sp_alvara', name: 'Alvará de Aprovação e Execução', default_duration_months: 4, min_duration_months: 3, max_duration_months: 6, internal_months: 1, external_months: 3, estimated_cost: 40000, region_id: 'sao_paulo' },
-    { id: 't_sp_ri', name: 'Registro de Incorporação (RI)', default_duration_months: 1.5, min_duration_months: 1, max_duration_months: 3, internal_months: 0.5, external_months: 1, estimated_cost: 25000, region_id: 'sao_paulo' },
-    { id: 't_sp_outorga', name: 'Outorga Onerosa (SMUL)', default_duration_months: 3, min_duration_months: 2, max_duration_months: 5, internal_months: 0.5, external_months: 2.5, estimated_cost: 500000, region_id: 'sao_paulo' },
-    { id: 't_sp_operacao', name: 'Aprovação Op. Urbana Consorciada', default_duration_months: 6, min_duration_months: 4, max_duration_months: 10, internal_months: 1, external_months: 5, estimated_cost: 100000, region_id: 'sao_paulo' },
-  ],
-
-  // ── REGRAS (GATILHOS) ──
-  // Nota: a ORDEM das regras "add" importa para mesma task (última vence).
-  //       Regras "only_if_active" ADICIONAM deps ao invés de substituir.
-  rules: [
-    // ═══ Fortaleza/CE — Incondicionais (sempre ativas) ═══
-    { id: 'r01', if_question_id: null, equals_value: null, then_add_task_id: 't_comite', depends_on_task_ids: [], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-    { id: 'r02', if_question_id: null, equals_value: null, then_add_task_id: 't_projetos', depends_on_task_ids: ['t_comite'], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-    { id: 'r03', if_question_id: null, equals_value: null, then_add_task_id: 't_bombeiros', depends_on_task_ids: ['t_projetos'], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-    { id: 'r04', if_question_id: null, equals_value: null, then_add_task_id: 't_las', depends_on_task_ids: ['t_projetos'], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-    { id: 'r05', if_question_id: null, equals_value: null, then_add_task_id: 't_alvara', depends_on_task_ids: ['t_bombeiros', 't_las', 't_lp_li'], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-    { id: 'r06', if_question_id: null, equals_value: null, then_add_task_id: 't_ri', depends_on_task_ids: ['t_alvara'], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-
-    // ═══ Fortaleza/CE — Demolição (q1 = Sim) ═══
-    { id: 'r07', if_question_id: 'q1', equals_value: true, then_add_task_id: 't_demolicao', depends_on_task_ids: ['t_comite'], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-    { id: 'r08', if_question_id: 'q1', equals_value: true, then_add_task_id: 't_projetos', depends_on_task_ids: ['t_demolicao'], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-
-    // ═══ Fortaleza/CE — Licença Regular por área (q2 = Sim, q3 = Sim) ═══
-    { id: 'r09', if_question_id: 'q2', equals_value: true, then_add_task_id: 't_lp_li', depends_on_task_ids: ['t_projetos'], replaces_task_id: 't_las', only_if_active: false, region_id: 'fortaleza' },
-    { id: 'r10', if_question_id: 'q3', equals_value: true, then_add_task_id: 't_lp_li', depends_on_task_ids: ['t_projetos'], replaces_task_id: 't_las', only_if_active: false, region_id: 'fortaleza' },
-
-    // ═══ Fortaleza/CE — AOP obrigatória > 300 unidades (q4 = Sim) ═══
-    { id: 'r11', if_question_id: 'q4', equals_value: true, then_add_task_id: 't_aop', depends_on_task_ids: ['t_projetos'], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-    { id: 'r12', if_question_id: 'q4', equals_value: true, then_add_task_id: 't_las', depends_on_task_ids: ['t_aop'], replaces_task_id: null, only_if_active: true, region_id: 'fortaleza' },
-    { id: 'r13', if_question_id: 'q4', equals_value: true, then_add_task_id: 't_lp_li', depends_on_task_ids: ['t_aop'], replaces_task_id: null, only_if_active: true, region_id: 'fortaleza' },
-
-    // ═══ Fortaleza/CE — ZIA (q5 = 'zia') ═══
-    { id: 'r14', if_question_id: 'q5', equals_value: 'zia', then_add_task_id: 't_zia_estudo', depends_on_task_ids: ['t_projetos'], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-    { id: 'r15', if_question_id: 'q5', equals_value: 'zia', then_add_task_id: 't_alvara', depends_on_task_ids: ['t_zia_estudo'], replaces_task_id: null, only_if_active: true, region_id: 'fortaleza' },
-
-    // ═══ Fortaleza/CE — IPHAN (q7 = Sim) ═══
-    { id: 'r16', if_question_id: 'q7', equals_value: true, then_add_task_id: 't_iphan', depends_on_task_ids: ['t_projetos'], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-    { id: 'r17', if_question_id: 'q7', equals_value: true, then_add_task_id: 't_alvara', depends_on_task_ids: ['t_iphan'], replaces_task_id: null, only_if_active: true, region_id: 'fortaleza' },
-
-    // ═══ Fortaleza/CE — EIV (q8 = Sim) ═══
-    { id: 'r18', if_question_id: 'q8', equals_value: true, then_add_task_id: 't_eiv', depends_on_task_ids: ['t_projetos'], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-    { id: 'r19', if_question_id: 'q8', equals_value: true, then_add_task_id: 't_alvara', depends_on_task_ids: ['t_eiv'], replaces_task_id: null, only_if_active: true, region_id: 'fortaleza' },
-
-    // ═══ Fortaleza/CE — EIT (q9 = Sim) ═══
-    { id: 'r20', if_question_id: 'q9', equals_value: true, then_add_task_id: 't_eit', depends_on_task_ids: ['t_projetos'], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-    { id: 'r21', if_question_id: 'q9', equals_value: true, then_add_task_id: 't_alvara', depends_on_task_ids: ['t_eit'], replaces_task_id: null, only_if_active: true, region_id: 'fortaleza' },
-
-    // ═══ Fortaleza/CE — Regularização de Matrícula (q11 = Não) ═══
-    { id: 'r22', if_question_id: 'q11', equals_value: false, then_add_task_id: 't_regularizacao', depends_on_task_ids: ['t_comite'], replaces_task_id: null, only_if_active: false, region_id: 'fortaleza' },
-    { id: 'r23', if_question_id: 'q11', equals_value: false, then_add_task_id: 't_projetos', depends_on_task_ids: ['t_regularizacao'], replaces_task_id: null, only_if_active: true, region_id: 'fortaleza' },
-
-    // ═══ São Paulo/SP — Incondicionais ═══
-    { id: 'r_sp01', if_question_id: null, equals_value: null, then_add_task_id: 't_sp_comite', depends_on_task_ids: [], replaces_task_id: null, only_if_active: false, region_id: 'sao_paulo' },
-    { id: 'r_sp02', if_question_id: null, equals_value: null, then_add_task_id: 't_sp_projetos', depends_on_task_ids: ['t_sp_comite'], replaces_task_id: null, only_if_active: false, region_id: 'sao_paulo' },
-    { id: 'r_sp03', if_question_id: null, equals_value: null, then_add_task_id: 't_sp_bombeiros', depends_on_task_ids: ['t_sp_projetos'], replaces_task_id: null, only_if_active: false, region_id: 'sao_paulo' },
-    { id: 'r_sp04', if_question_id: null, equals_value: null, then_add_task_id: 't_sp_lic_ambiental', depends_on_task_ids: ['t_sp_projetos'], replaces_task_id: null, only_if_active: false, region_id: 'sao_paulo' },
-    { id: 'r_sp05', if_question_id: null, equals_value: null, then_add_task_id: 't_sp_alvara', depends_on_task_ids: ['t_sp_bombeiros', 't_sp_lic_ambiental'], replaces_task_id: null, only_if_active: false, region_id: 'sao_paulo' },
-    { id: 'r_sp06', if_question_id: null, equals_value: null, then_add_task_id: 't_sp_ri', depends_on_task_ids: ['t_sp_alvara'], replaces_task_id: null, only_if_active: false, region_id: 'sao_paulo' },
-
-    // ═══ SP — Demolição (q_sp1 = Sim) ═══
-    { id: 'r_sp07', if_question_id: 'q_sp1', equals_value: true, then_add_task_id: 't_sp_demolicao', depends_on_task_ids: ['t_sp_comite'], replaces_task_id: null, only_if_active: false, region_id: 'sao_paulo' },
-    { id: 'r_sp08', if_question_id: 'q_sp1', equals_value: true, then_add_task_id: 't_sp_projetos', depends_on_task_ids: ['t_sp_demolicao'], replaces_task_id: null, only_if_active: true, region_id: 'sao_paulo' },
-
-    // ═══ SP — Área > 20k (q_sp2 = Sim) → licença mais demorada ═══
-    // (Em SP, acima de 20k m² a CETESB exige análise detalhada — já incluída na task base, mas o prazo sobe)
-    // Sem task adicional, apenas nota. Poderia criar uma task separada se necessário.
-
-    // ═══ SP — Outorga Onerosa (q_sp4 = Sim) ═══
-    { id: 'r_sp09', if_question_id: 'q_sp4', equals_value: true, then_add_task_id: 't_sp_outorga', depends_on_task_ids: ['t_sp_projetos'], replaces_task_id: null, only_if_active: false, region_id: 'sao_paulo' },
-    { id: 'r_sp10', if_question_id: 'q_sp4', equals_value: true, then_add_task_id: 't_sp_alvara', depends_on_task_ids: ['t_sp_outorga'], replaces_task_id: null, only_if_active: true, region_id: 'sao_paulo' },
-
-    // ═══ SP — Operação Urbana Consorciada (q_sp5 = Sim) ═══
-    { id: 'r_sp11', if_question_id: 'q_sp5', equals_value: true, then_add_task_id: 't_sp_operacao', depends_on_task_ids: ['t_sp_projetos'], replaces_task_id: null, only_if_active: false, region_id: 'sao_paulo' },
-    { id: 'r_sp12', if_question_id: 'q_sp5', equals_value: true, then_add_task_id: 't_sp_alvara', depends_on_task_ids: ['t_sp_operacao'], replaces_task_id: null, only_if_active: true, region_id: 'sao_paulo' },
-  ],
-
-  // ── HISTÓRICO DE PROJETOS (mock para comparação) ──
-  history: [
+  // ── TEMPLATES ──
+  templates: [
     {
-      id: 'h1', project_name: 'Edifício Paupina I', region_id: 'fortaleza', year: 2024,
-      tasks_completed: [
-        { task_id: 't_projetos', actual_duration: 2.5, notes: 'Revisão de projeto pela prefeitura' },
-        { task_id: 't_bombeiros', actual_duration: 5, notes: 'Atraso na análise do CBMCE' },
-        { task_id: 't_las', actual_duration: 8, notes: 'SEMACE pediu laudo complementar' },
-        { task_id: 't_alvara', actual_duration: 3.5, notes: '' },
-        { task_id: 't_ri', actual_duration: 1, notes: '' },
+      id: 'tpl_residencial_ce',
+      name: 'Residencial Padrão — Fortaleza/CE',
+      description: 'Fluxo típico de um empreendimento residencial vertical em Fortaleza, incluindo licenciamento ambiental simplificado, bombeiros e alvará.',
+      nodes: [
+        { id: 's_comite', type: 'custom', position: { x: 0, y: 140 }, data: { label: 'Comitê de Aquisição', duracao: 0 } },
+        { id: 's_projetos', type: 'custom', position: { x: 250, y: 140 }, data: { label: 'Projetos Iniciais', duracao: 2 } },
+        { id: 's_las', type: 'custom', position: { x: 520, y: 50 }, data: { label: 'Licença Ambiental Simplificada (LAS)', duracao: 7 } },
+        { id: 's_bombeiros_ce', type: 'custom', position: { x: 520, y: 230 }, data: { label: 'Aprovação Bombeiros (CBMCE)', duracao: 4.5 } },
+        { id: 's_alvara', type: 'custom', position: { x: 850, y: 140 }, data: { label: 'Alvará de Construção', duracao: 3 } },
+        { id: 's_ri', type: 'custom', position: { x: 1120, y: 140 }, data: { label: 'Registro de Incorporação (RI)', duracao: 1 } },
+      ],
+      edges: [
+        { id: 'e-s_comite-s_projetos', source: 's_comite', target: 's_projetos', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_las', source: 's_projetos', target: 's_las', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_bombeiros_ce', source: 's_projetos', target: 's_bombeiros_ce', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_las-s_alvara', source: 's_las', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_bombeiros_ce-s_alvara', source: 's_bombeiros_ce', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_alvara-s_ri', source: 's_alvara', target: 's_ri', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
       ],
     },
     {
-      id: 'h2', project_name: 'Residencial Messejana', region_id: 'fortaleza', year: 2023,
-      tasks_completed: [
-        { task_id: 't_demolicao', actual_duration: 5, notes: '' },
-        { task_id: 't_projetos', actual_duration: 2, notes: '' },
-        { task_id: 't_bombeiros', actual_duration: 4, notes: '' },
-        { task_id: 't_las', actual_duration: 6.5, notes: '' },
-        { task_id: 't_alvara', actual_duration: 2.5, notes: '' },
-        { task_id: 't_ri', actual_duration: 1.5, notes: 'Pendência no cartório' },
+      id: 'tpl_residencial_sp',
+      name: 'Residencial Padrão — São Paulo/SP',
+      description: 'Fluxo típico de empreendimento residencial vertical em São Paulo, com AVCB, CETESB e alvará unificado.',
+      nodes: [
+        { id: 's_comite', type: 'custom', position: { x: 0, y: 140 }, data: { label: 'Comitê de Aquisição', duracao: 0 } },
+        { id: 's_projetos', type: 'custom', position: { x: 250, y: 140 }, data: { label: 'Projetos Iniciais', duracao: 2 } },
+        { id: 's_lic_ambiental_sp', type: 'custom', position: { x: 520, y: 50 }, data: { label: 'Licença Ambiental (CETESB)', duracao: 8 } },
+        { id: 's_bombeiros_sp', type: 'custom', position: { x: 520, y: 230 }, data: { label: 'AVCB (Corpo de Bombeiros SP)', duracao: 3 } },
+        { id: 's_alvara_sp', type: 'custom', position: { x: 850, y: 140 }, data: { label: 'Alvará de Aprovação e Execução', duracao: 4 } },
+        { id: 's_ri_sp', type: 'custom', position: { x: 1120, y: 140 }, data: { label: 'Registro de Incorporação (RI) SP', duracao: 1.5 } },
+      ],
+      edges: [
+        { id: 'e-s_comite-s_projetos', source: 's_comite', target: 's_projetos', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_lic_ambiental_sp', source: 's_projetos', target: 's_lic_ambiental_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_bombeiros_sp', source: 's_projetos', target: 's_bombeiros_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_lic_ambiental_sp-s_alvara_sp', source: 's_lic_ambiental_sp', target: 's_alvara_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_bombeiros_sp-s_alvara_sp', source: 's_bombeiros_sp', target: 's_alvara_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_alvara_sp-s_ri_sp', source: 's_alvara_sp', target: 's_ri_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
       ],
     },
     {
-      id: 'h3', project_name: 'Condomínio Aldeota Park', region_id: 'fortaleza', year: 2025,
-      tasks_completed: [
-        { task_id: 't_projetos', actual_duration: 3, notes: 'Projeto complexo (uso misto)' },
-        { task_id: 't_bombeiros', actual_duration: 4.5, notes: '' },
-        { task_id: 't_lp_li', actual_duration: 12, notes: 'Licença Regular por área > 40k m²' },
-        { task_id: 't_aop', actual_duration: 4, notes: '' },
-        { task_id: 't_iphan', actual_duration: 7, notes: 'Entorno de imóvel tombado' },
-        { task_id: 't_eiv', actual_duration: 5, notes: '' },
-        { task_id: 't_alvara', actual_duration: 4, notes: '' },
-        { task_id: 't_ri', actual_duration: 1, notes: '' },
+      id: 'tpl_grande_porte_ce',
+      name: 'Grande Porte (>300un) — Fortaleza/CE',
+      description: 'Template para empreendimentos de grande porte em Fortaleza com AOP, EIV, EIT e licença ambiental regular.',
+      nodes: [
+        { id: 's_comite', type: 'custom', position: { x: 0, y: 200 }, data: { label: 'Comitê de Aquisição', duracao: 0 } },
+        { id: 's_projetos', type: 'custom', position: { x: 240, y: 200 }, data: { label: 'Projetos Iniciais', duracao: 2 } },
+        { id: 's_aop', type: 'custom', position: { x: 500, y: 50 }, data: { label: 'Análise de Orientação Prévia', duracao: 3.5 } },
+        { id: 's_lp_li', type: 'custom', position: { x: 500, y: 160 }, data: { label: 'Licença Ambiental Regular (LP+LI)', duracao: 10 } },
+        { id: 's_eiv', type: 'custom', position: { x: 500, y: 270 }, data: { label: 'Estudo de Impacto de Vizinhança', duracao: 4 } },
+        { id: 's_eit', type: 'custom', position: { x: 500, y: 370 }, data: { label: 'Estudo de Impacto no Trânsito', duracao: 3 } },
+        { id: 's_bombeiros_ce', type: 'custom', position: { x: 820, y: 100 }, data: { label: 'Aprovação Bombeiros (CBMCE)', duracao: 4.5 } },
+        { id: 's_alvara', type: 'custom', position: { x: 1100, y: 200 }, data: { label: 'Alvará de Construção', duracao: 3 } },
+        { id: 's_ri', type: 'custom', position: { x: 1370, y: 200 }, data: { label: 'Registro de Incorporação (RI)', duracao: 1 } },
+      ],
+      edges: [
+        { id: 'e-s_comite-s_projetos', source: 's_comite', target: 's_projetos', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_aop', source: 's_projetos', target: 's_aop', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_lp_li', source: 's_projetos', target: 's_lp_li', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_eiv', source: 's_projetos', target: 's_eiv', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_eit', source: 's_projetos', target: 's_eit', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_aop-s_bombeiros_ce', source: 's_aop', target: 's_bombeiros_ce', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_lp_li-s_alvara', source: 's_lp_li', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_eiv-s_alvara', source: 's_eiv', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_eit-s_alvara', source: 's_eit', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_bombeiros_ce-s_alvara', source: 's_bombeiros_ce', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_alvara-s_ri', source: 's_alvara', target: 's_ri', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
       ],
     },
   ],
 
-  // ── CENÁRIOS SALVOS ──
-  scenarios: [],
+  // ── SIMULAÇÕES ──
+  simulations: [
+    // ── 1. Simulação CONCLUÍDA — Edifício Meireles (Fortaleza) ──
+    {
+      id: 'sim_meireles',
+      name: 'Ed. Meireles Beach Tower',
+      localityId: 'fortaleza',
+      createdAt: '2025-06-15T10:00:00.000Z',
+      finishedAt: '2025-12-20T14:30:00.000Z',
+      answers: {
+        q1: true,
+        q2: 28000,
+        q3: true,
+        q3__q3_sub1: 12,
+        q4: false,
+        q5: 'zo',
+        q6: false,
+        q7: false,
+        q8: true,
+        q9: false,
+        q10: 'residencial',
+        q11: true,
+      },
+      nodes: [
+        { id: 's_comite', type: 'custom', position: { x: 0, y: 150 }, data: { label: 'Comitê de Aquisição', duracao: 0 } },
+        { id: 's_demolicao', type: 'custom', position: { x: 220, y: 50 }, data: { label: 'Demolição', duracao: 6 } },
+        { id: 's_lic_demolicao', type: 'custom', position: { x: 470, y: 50 }, data: { label: 'Licença de Demolição', duracao: 2 } },
+        { id: 's_projetos', type: 'custom', position: { x: 220, y: 250 }, data: { label: 'Projetos Iniciais', duracao: 2 } },
+        { id: 's_las', type: 'custom', position: { x: 500, y: 150 }, data: { label: 'Licença Ambiental Simplificada (LAS)', duracao: 7 } },
+        { id: 's_bombeiros_ce', type: 'custom', position: { x: 500, y: 320 }, data: { label: 'Aprovação Bombeiros (CBMCE)', duracao: 4.5 } },
+        { id: 's_eiv', type: 'custom', position: { x: 760, y: 30 }, data: { label: 'Estudo de Impacto de Vizinhança', duracao: 4 } },
+        { id: 's_alvara', type: 'custom', position: { x: 980, y: 180 }, data: { label: 'Alvará de Construção', duracao: 3 } },
+        { id: 's_ri', type: 'custom', position: { x: 1250, y: 180 }, data: { label: 'Registro de Incorporação (RI)', duracao: 1 } },
+      ],
+      edges: [
+        { id: 'e-s_comite-s_demolicao', source: 's_comite', target: 's_demolicao', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_demolicao-s_lic_demolicao', source: 's_demolicao', target: 's_lic_demolicao', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_comite-s_projetos', source: 's_comite', target: 's_projetos', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_las', source: 's_projetos', target: 's_las', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_bombeiros_ce', source: 's_projetos', target: 's_bombeiros_ce', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_las-s_eiv', source: 's_las', target: 's_eiv', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_eiv-s_alvara', source: 's_eiv', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_bombeiros_ce-s_alvara', source: 's_bombeiros_ce', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_lic_demolicao-s_alvara', source: 's_lic_demolicao', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_alvara-s_ri', source: 's_alvara', target: 's_ri', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+      ],
+      completedSteps: [
+        { stepId: 's_comite', actualDuration: 0, notes: 'Aprovado por unanimidade no comitê de jun/2025' },
+        { stepId: 's_demolicao', actualDuration: 5, notes: 'Demolição da casa antiga concluída em 5 meses' },
+        { stepId: 's_lic_demolicao', actualDuration: 1.5, notes: 'Licença saiu mais rápido que o previsto' },
+        { stepId: 's_projetos', actualDuration: 2.5, notes: 'Pequeno atraso nos projetos complementares' },
+        { stepId: 's_las', actualDuration: 6, notes: 'SEMACE aprovou sem condicionantes extras' },
+        { stepId: 's_bombeiros_ce', actualDuration: 4, notes: 'CBMCE aprovou com ressalvas menores' },
+        { stepId: 's_eiv', actualDuration: 3.5, notes: 'EIV aprovado após audiência pública' },
+        { stepId: 's_alvara', actualDuration: 3, notes: 'Alvará emitido conforme prazo padrão' },
+        { stepId: 's_ri', actualDuration: 1, notes: 'RI registrado no 5º Ofício' },
+      ],
+    },
+
+    // ── 2. Simulação EM ANDAMENTO — Residencial Aldeota (Fortaleza) ──
+    {
+      id: 'sim_aldeota',
+      name: 'Residencial Parque Aldeota',
+      localityId: 'fortaleza',
+      createdAt: '2026-01-10T09:00:00.000Z',
+      answers: {
+        q1: false,
+        q2: 18000,
+        q3: false,
+        q4: false,
+        q5: 'zrm',
+        q6: false,
+        q7: false,
+        q8: false,
+        q9: false,
+        q10: 'residencial',
+        q11: true,
+      },
+      nodes: [
+        { id: 's_comite', type: 'custom', position: { x: 0, y: 140 }, data: { label: 'Comitê de Aquisição', duracao: 0 } },
+        { id: 's_projetos', type: 'custom', position: { x: 250, y: 140 }, data: { label: 'Projetos Iniciais', duracao: 2, predictedTime: 2.5 } },
+        { id: 's_las', type: 'custom', position: { x: 520, y: 50 }, data: { label: 'Licença Ambiental Simplificada (LAS)', duracao: 7, predictedTime: 6 } },
+        { id: 's_bombeiros_ce', type: 'custom', position: { x: 520, y: 230 }, data: { label: 'Aprovação Bombeiros (CBMCE)', duracao: 4.5, predictedTime: 4 } },
+        { id: 's_alvara', type: 'custom', position: { x: 850, y: 140 }, data: { label: 'Alvará de Construção', duracao: 3 } },
+        { id: 's_ri', type: 'custom', position: { x: 1120, y: 140 }, data: { label: 'Registro de Incorporação (RI)', duracao: 1 } },
+      ],
+      edges: [
+        { id: 'e-s_comite-s_projetos', source: 's_comite', target: 's_projetos', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_las', source: 's_projetos', target: 's_las', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_bombeiros_ce', source: 's_projetos', target: 's_bombeiros_ce', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_las-s_alvara', source: 's_las', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_bombeiros_ce-s_alvara', source: 's_bombeiros_ce', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_alvara-s_ri', source: 's_alvara', target: 's_ri', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+      ],
+      completedSteps: [
+        { stepId: 's_comite', actualDuration: 0, notes: 'Deliberação aprovada em jan/2026' },
+        { stepId: 's_projetos', actualDuration: 2, notes: 'Projetos finalizados no prazo' },
+        { stepId: 's_bombeiros_ce', actualDuration: 5, notes: 'Demorou mais que o previsto, exigências extras do CBMCE' },
+      ],
+    },
+
+    // ── 3. Simulação CONCLUÍDA — Edifício Vila Mariana (SP) ──
+    {
+      id: 'sim_vila_mariana',
+      name: 'Ed. Vila Mariana Premium',
+      localityId: 'sao_paulo',
+      createdAt: '2025-03-01T08:00:00.000Z',
+      finishedAt: '2025-11-15T16:00:00.000Z',
+      answers: {
+        q_sp1: true,
+        q_sp2: 32000,
+        q_sp3: false,
+        q_sp4: true,
+        q_sp5: false,
+      },
+      nodes: [
+        { id: 's_comite', type: 'custom', position: { x: 0, y: 180 }, data: { label: 'Comitê de Aquisição', duracao: 0 } },
+        { id: 's_demolicao', type: 'custom', position: { x: 230, y: 60 }, data: { label: 'Demolição', duracao: 6 } },
+        { id: 's_lic_demolicao', type: 'custom', position: { x: 480, y: 60 }, data: { label: 'Licença de Demolição', duracao: 2 } },
+        { id: 's_projetos', type: 'custom', position: { x: 230, y: 280 }, data: { label: 'Projetos Iniciais', duracao: 2 } },
+        { id: 's_lic_ambiental_sp', type: 'custom', position: { x: 530, y: 180 }, data: { label: 'Licença Ambiental (CETESB)', duracao: 8 } },
+        { id: 's_bombeiros_sp', type: 'custom', position: { x: 530, y: 340 }, data: { label: 'AVCB (Corpo de Bombeiros SP)', duracao: 3 } },
+        { id: 's_outorga', type: 'custom', position: { x: 530, y: 460 }, data: { label: 'Outorga Onerosa (SMUL)', duracao: 3 } },
+        { id: 's_alvara_sp', type: 'custom', position: { x: 870, y: 220 }, data: { label: 'Alvará de Aprovação e Execução', duracao: 4 } },
+        { id: 's_ri_sp', type: 'custom', position: { x: 1150, y: 220 }, data: { label: 'Registro de Incorporação (RI) SP', duracao: 1.5 } },
+      ],
+      edges: [
+        { id: 'e-s_comite-s_demolicao', source: 's_comite', target: 's_demolicao', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_demolicao-s_lic_demolicao', source: 's_demolicao', target: 's_lic_demolicao', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_comite-s_projetos', source: 's_comite', target: 's_projetos', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_lic_ambiental_sp', source: 's_projetos', target: 's_lic_ambiental_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_bombeiros_sp', source: 's_projetos', target: 's_bombeiros_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_outorga', source: 's_projetos', target: 's_outorga', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_lic_ambiental_sp-s_alvara_sp', source: 's_lic_ambiental_sp', target: 's_alvara_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_bombeiros_sp-s_alvara_sp', source: 's_bombeiros_sp', target: 's_alvara_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_outorga-s_alvara_sp', source: 's_outorga', target: 's_alvara_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_lic_demolicao-s_alvara_sp', source: 's_lic_demolicao', target: 's_alvara_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_alvara_sp-s_ri_sp', source: 's_alvara_sp', target: 's_ri_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+      ],
+      completedSteps: [
+        { stepId: 's_comite', actualDuration: 0, notes: 'Aprovado em março de 2025' },
+        { stepId: 's_demolicao', actualDuration: 5.5, notes: 'Galpão industrial demolido' },
+        { stepId: 's_lic_demolicao', actualDuration: 2, notes: 'Licença obtida via SEI' },
+        { stepId: 's_projetos', actualDuration: 2, notes: 'Projetos entregues no prazo' },
+        { stepId: 's_lic_ambiental_sp', actualDuration: 7, notes: 'CETESB aprovou em 7 meses — compensação arbórea aprovada' },
+        { stepId: 's_bombeiros_sp', actualDuration: 3.5, notes: 'AVCB emitido com 2 ressalvas corrigidas' },
+        { stepId: 's_outorga', actualDuration: 3, notes: 'Outorga paga via CEPAC' },
+        { stepId: 's_alvara_sp', actualDuration: 4, notes: 'Alvará unificado emitido' },
+        { stepId: 's_ri_sp', actualDuration: 1.5, notes: 'RI registrado no 15º RI de SP' },
+      ],
+    },
+
+    // ── 4. Simulação EM ANDAMENTO — Condomínio Pinheiros (SP) ──
+    {
+      id: 'sim_pinheiros',
+      name: 'Condomínio Jardins de Pinheiros',
+      localityId: 'sao_paulo',
+      createdAt: '2026-02-01T11:00:00.000Z',
+      answers: {
+        q_sp1: false,
+        q_sp2: 15000,
+        q_sp3: false,
+        q_sp4: true,
+        q_sp5: true,
+      },
+      nodes: [
+        { id: 's_comite', type: 'custom', position: { x: 0, y: 200 }, data: { label: 'Comitê de Aquisição', duracao: 0 } },
+        { id: 's_projetos', type: 'custom', position: { x: 250, y: 200 }, data: { label: 'Projetos Iniciais', duracao: 2, predictedTime: 2 } },
+        { id: 's_lic_ambiental_sp', type: 'custom', position: { x: 530, y: 80 }, data: { label: 'Licença Ambiental (CETESB)', duracao: 8, predictedTime: 7 } },
+        { id: 's_bombeiros_sp', type: 'custom', position: { x: 530, y: 200 }, data: { label: 'AVCB (Corpo de Bombeiros SP)', duracao: 3 } },
+        { id: 's_outorga', type: 'custom', position: { x: 530, y: 320 }, data: { label: 'Outorga Onerosa (SMUL)', duracao: 3 } },
+        { id: 's_operacao_urbana', type: 'custom', position: { x: 530, y: 440 }, data: { label: 'Aprovação Op. Urbana Consorciada', duracao: 6 } },
+        { id: 's_alvara_sp', type: 'custom', position: { x: 870, y: 200 }, data: { label: 'Alvará de Aprovação e Execução', duracao: 4 } },
+        { id: 's_ri_sp', type: 'custom', position: { x: 1140, y: 200 }, data: { label: 'Registro de Incorporação (RI) SP', duracao: 1.5 } },
+      ],
+      edges: [
+        { id: 'e-s_comite-s_projetos', source: 's_comite', target: 's_projetos', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_lic_ambiental_sp', source: 's_projetos', target: 's_lic_ambiental_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_bombeiros_sp', source: 's_projetos', target: 's_bombeiros_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_outorga', source: 's_projetos', target: 's_outorga', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_operacao_urbana', source: 's_projetos', target: 's_operacao_urbana', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_lic_ambiental_sp-s_alvara_sp', source: 's_lic_ambiental_sp', target: 's_alvara_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_bombeiros_sp-s_alvara_sp', source: 's_bombeiros_sp', target: 's_alvara_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_outorga-s_alvara_sp', source: 's_outorga', target: 's_alvara_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_operacao_urbana-s_alvara_sp', source: 's_operacao_urbana', target: 's_alvara_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_alvara_sp-s_ri_sp', source: 's_alvara_sp', target: 's_ri_sp', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+      ],
+      completedSteps: [
+        { stepId: 's_comite', actualDuration: 0, notes: 'Aprovado em fev/2026' },
+        { stepId: 's_projetos', actualDuration: 2, notes: 'Concluídos em abr/2026' },
+      ],
+    },
+
+    // ── 5. Simulação CONCLUÍDA — Edifício Benfica (Fortaleza, grande porte, com demolição) ──
+    {
+      id: 'sim_benfica',
+      name: 'Ed. Benfica Corporate',
+      localityId: 'fortaleza',
+      createdAt: '2025-01-05T08:00:00.000Z',
+      finishedAt: '2026-02-28T10:00:00.000Z',
+      answers: {
+        q1: true,
+        q2: 55000,
+        q3: true,
+        q3__q3_sub1: 82,
+        q4: true,
+        q5: 'zo',
+        q6: false,
+        q7: true,
+        q8: true,
+        q9: true,
+        q10: 'misto',
+        q11: false,
+      },
+      nodes: [
+        { id: 's_comite', type: 'custom', position: { x: 0, y: 250 }, data: { label: 'Comitê de Aquisição', duracao: 0 } },
+        { id: 's_regularizacao', type: 'custom', position: { x: 220, y: 50 }, data: { label: 'Regularização da Matrícula', duracao: 4 } },
+        { id: 's_demolicao', type: 'custom', position: { x: 220, y: 160 }, data: { label: 'Demolição', duracao: 6 } },
+        { id: 's_lic_demolicao', type: 'custom', position: { x: 470, y: 160 }, data: { label: 'Licença de Demolição', duracao: 2 } },
+        { id: 's_projetos', type: 'custom', position: { x: 220, y: 380 }, data: { label: 'Projetos Iniciais', duracao: 2 } },
+        { id: 's_aop', type: 'custom', position: { x: 500, y: 50 }, data: { label: 'Análise de Orientação Prévia', duracao: 3.5 } },
+        { id: 's_lp_li', type: 'custom', position: { x: 500, y: 250 }, data: { label: 'Licença Ambiental Regular (LP+LI)', duracao: 10 } },
+        { id: 's_iphan', type: 'custom', position: { x: 500, y: 380 }, data: { label: 'Aprovação IPHAN', duracao: 6 } },
+        { id: 's_eiv', type: 'custom', position: { x: 780, y: 100 }, data: { label: 'Estudo de Impacto de Vizinhança', duracao: 4 } },
+        { id: 's_eit', type: 'custom', position: { x: 780, y: 220 }, data: { label: 'Estudo de Impacto no Trânsito', duracao: 3 } },
+        { id: 's_bombeiros_ce', type: 'custom', position: { x: 780, y: 380 }, data: { label: 'Aprovação Bombeiros (CBMCE)', duracao: 4.5 } },
+        { id: 's_alvara', type: 'custom', position: { x: 1080, y: 250 }, data: { label: 'Alvará de Construção', duracao: 3 } },
+        { id: 's_ri', type: 'custom', position: { x: 1350, y: 250 }, data: { label: 'Registro de Incorporação (RI)', duracao: 1 } },
+      ],
+      edges: [
+        { id: 'e-s_comite-s_regularizacao', source: 's_comite', target: 's_regularizacao', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_comite-s_demolicao', source: 's_comite', target: 's_demolicao', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_demolicao-s_lic_demolicao', source: 's_demolicao', target: 's_lic_demolicao', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_comite-s_projetos', source: 's_comite', target: 's_projetos', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_aop', source: 's_projetos', target: 's_aop', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_lp_li', source: 's_projetos', target: 's_lp_li', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_iphan', source: 's_projetos', target: 's_iphan', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_aop-s_eiv', source: 's_aop', target: 's_eiv', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_aop-s_eit', source: 's_aop', target: 's_eit', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_projetos-s_bombeiros_ce', source: 's_projetos', target: 's_bombeiros_ce', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_lp_li-s_alvara', source: 's_lp_li', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_eiv-s_alvara', source: 's_eiv', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_eit-s_alvara', source: 's_eit', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_iphan-s_alvara', source: 's_iphan', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_bombeiros_ce-s_alvara', source: 's_bombeiros_ce', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_lic_demolicao-s_alvara', source: 's_lic_demolicao', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_regularizacao-s_alvara', source: 's_regularizacao', target: 's_alvara', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+        { id: 'e-s_alvara-s_ri', source: 's_alvara', target: 's_ri', type: 'smoothstep', animated: true, markerEnd: { type: 'arrowclosed', color: '#64748b' }, style: { stroke: '#64748b', strokeWidth: 2 } },
+      ],
+      completedSteps: [
+        { stepId: 's_comite', actualDuration: 0, notes: 'Aprovado em jan/2025' },
+        { stepId: 's_regularizacao', actualDuration: 3.5, notes: 'Matrícula unificada após desmembramento' },
+        { stepId: 's_demolicao', actualDuration: 7, notes: 'Demolição mais demorada por amianto encontrado' },
+        { stepId: 's_lic_demolicao', actualDuration: 2.5, notes: 'Licença de demolição com condicionante de amianto' },
+        { stepId: 's_projetos', actualDuration: 2.5, notes: 'Pequeno atraso por revisão do memorial descritivo' },
+        { stepId: 's_aop', actualDuration: 4, notes: 'AOP demorou pois SEUMA pediu complementação' },
+        { stepId: 's_lp_li', actualDuration: 11, notes: 'LP+LI — compensação ambiental de 82 árvores exigiu EIA/RIMA complementar' },
+        { stepId: 's_iphan', actualDuration: 8, notes: 'IPHAN exigiu relatório arqueológico de sondagem' },
+        { stepId: 's_eiv', actualDuration: 4, notes: 'EIV aprovado com condicionantes de calçada' },
+        { stepId: 's_eit', actualDuration: 3, notes: 'EIT aprovado — semáforo será reconfigurado' },
+        { stepId: 's_bombeiros_ce', actualDuration: 5, notes: 'CBMCE: hidrantes extra na concepção final' },
+        { stepId: 's_alvara', actualDuration: 3.5, notes: 'Alvará emitido após atender 2 exigências' },
+        { stepId: 's_ri', actualDuration: 1.5, notes: 'RI registrado no 2º Ofício' },
+      ],
+    },
+
+    // ── 6. Simulação EM ANDAMENTO (vazia, recém criada) — Mooca SP ──
+    {
+      id: 'sim_mooca',
+      name: 'Residencial Mooca Nova',
+      localityId: 'sao_paulo',
+      createdAt: '2026-03-15T14:00:00.000Z',
+      answers: {},
+      nodes: [],
+      edges: [],
+      completedSteps: [],
+    },
+  ],
 };
