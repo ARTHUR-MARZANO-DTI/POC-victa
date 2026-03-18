@@ -38,10 +38,22 @@ const COLORS = {
 function CustomNode({ data }) {
   const c = COLORS[data.variant] || COLORS.fixed;
   const showBreakdown = data.internal > 0 || data.external > 0;
+  const completion = data.completion;
+  const isCompleted = completion?.status === 'completed';
+  const isInProgress = completion?.status === 'in_progress';
+
+  let ringClass = '';
+  if (isCompleted) ringClass = 'ring-2 ring-green-400 ring-offset-2';
+  else if (isInProgress) ringClass = 'ring-2 ring-amber-400 ring-offset-2';
+  else if (data.isCritical) ringClass = 'ring-2 ring-red-400 ring-offset-2';
+
+  const bgColor = isCompleted ? '#166534' : c.bg;
+  const borderColor = isCompleted ? '#15803d' : isInProgress ? '#d97706' : data.isCritical ? '#ef4444' : c.border;
+
   return (
     <div
-      className={`rounded-xl shadow-lg px-4 py-3 min-w-[220px] text-center text-white transition-all hover:scale-105 hover:shadow-xl ${data.isCritical ? 'ring-2 ring-red-400 ring-offset-2' : ''} ${data.isUncertain ? 'node-uncertain' : ''}`}
-      style={{ background: c.bg, border: `2px solid ${data.isCritical ? '#ef4444' : c.border}` }}
+      className={`rounded-xl shadow-lg px-4 py-3 min-w-[220px] text-center text-white transition-all hover:scale-105 hover:shadow-xl cursor-pointer ${ringClass} ${data.isUncertain ? 'node-uncertain' : ''}`}
+      style={{ background: bgColor, border: `2px solid ${borderColor}` }}
     >
       <Handle type="target" position={Position.Left} className="!bg-gray-300 !w-3 !h-3" />
       <div className="font-bold text-sm leading-tight">{data.label}</div>
@@ -55,7 +67,16 @@ function CustomNode({ data }) {
       {data.cost > 0 && (
         <div className="mt-0.5 text-[10px] opacity-70">{fmtCurrency(data.cost)}</div>
       )}
-      {data.isCritical && (
+      {isCompleted && (
+        <div className="mt-1 text-[10px] font-semibold text-green-200 uppercase tracking-wider">✓ Concluído</div>
+      )}
+      {isInProgress && (
+        <div className="mt-1 text-[10px] font-semibold text-amber-200 uppercase tracking-wider">⏳ Em Andamento</div>
+      )}
+      {completion?.actualDuration != null && (
+        <div className="mt-0.5 text-[10px] opacity-90">⏱ Real: {fmt(completion.actualDuration)}</div>
+      )}
+      {!isCompleted && !isInProgress && data.isCritical && (
         <div className="mt-1 text-[10px] font-semibold text-red-200 uppercase tracking-wider">Caminho Crítico</div>
       )}
       {data.isUncertain && (
@@ -86,35 +107,186 @@ function CustomNode({ data }) {
 const nodeTypes = { custom: CustomNode };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 2. EDIT MODAL — Click node to edit duration
+// 2. STEP DETAIL MODAL — Click node to view details, complete step & edit duration
 // ═══════════════════════════════════════════════════════════════════════════════
-function EditModal({ node, onSave, onClose }) {
-  const [val, setVal] = useState(node?.data?.duracao ?? 0);
-  useEffect(() => { setVal(node?.data?.duracao ?? 0); }, [node]);
+function StepDetailModal({ node, completions, onSave, onClose }) {
+  const existing = completions[node?.id] || {};
+  const [status, setStatus] = useState(existing.status || 'pending');
+  const [actualDuration, setActualDuration] = useState(existing.actualDuration ?? '');
+  const [startedAt, setStartedAt] = useState(existing.startedAt || '');
+  const [completedAt, setCompletedAt] = useState(existing.completedAt || '');
+  const [description, setDescription] = useState(existing.description || '');
+  const [estimatedDur, setEstimatedDur] = useState(node?.data?.duracao ?? 0);
+  const [showEditEstimate, setShowEditEstimate] = useState(false);
+
+  useEffect(() => {
+    if (!node) return;
+    const ex = completions[node.id] || {};
+    setStatus(ex.status || 'pending');
+    setActualDuration(ex.actualDuration ?? '');
+    setStartedAt(ex.startedAt || '');
+    setCompletedAt(ex.completedAt || '');
+    setDescription(ex.description || '');
+    setEstimatedDur(node.data.duracao ?? 0);
+    setShowEditEstimate(false);
+  }, [node?.id]);
+
   if (!node) return null;
+
+  const diff = actualDuration !== '' && node.data.duracao > 0
+    ? Number.parseFloat(actualDuration) - node.data.duracao
+    : null;
+
   const submit = (e) => {
     e.preventDefault();
-    const p = Number.parseFloat(val);
-    if (!Number.isNaN(p) && p >= 0) onSave(node.id, p);
+    onSave(node.id, {
+      estimatedDuration: Number.parseFloat(estimatedDur) || 0,
+      completion: {
+        status,
+        actualDuration: actualDuration !== '' ? Number.parseFloat(actualDuration) : null,
+        startedAt,
+        completedAt,
+        description,
+      },
+    });
   };
+
+  const statusOptions = [
+    { key: 'pending', icon: '◯', label: 'Pendente', activeClass: 'bg-gray-600 text-white border-gray-600' },
+    { key: 'in_progress', icon: '⏳', label: 'Em Andamento', activeClass: 'bg-amber-500 text-white border-amber-500' },
+    { key: 'completed', icon: '✓', label: 'Concluído', activeClass: 'bg-green-600 text-white border-green-600' },
+  ];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fadeIn" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl p-6 w-[420px] border border-gray-200" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-bold text-gray-800 mb-1">Editar Duração</h3>
-        <p className="text-sm text-gray-500 mb-4">{node.data.label}</p>
-        <form onSubmit={submit}>
-          <label htmlFor="dur-input" className="block text-sm font-medium text-gray-700 mb-1">Duração (meses)</label>
-          <input id="dur-input" type="number" min="0" step="0.5" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none" value={val} onChange={(e) => setVal(e.target.value)} autoFocus />
-          <p className="text-xs text-gray-400 mt-1">Valores decimais permitidos (ex: 4,5)</p>
-          {node.data.internal > 0 && (
-            <div className="mt-3 p-2.5 bg-gray-50 rounded-lg text-xs text-gray-600">
-              <p>🏢 Tempo Interno (Victa): <strong>{node.data.internal}m</strong></p>
-              <p>🏛️ Tempo Externo (Órgão): <strong>{node.data.external}m</strong></p>
+      <div className="bg-white rounded-2xl shadow-2xl w-[500px] max-h-[90vh] overflow-y-auto border border-gray-200" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+          <div className="flex items-start justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-gray-800">{node.data.label}</h3>
+              <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-gray-400">
+                <span>⏱ Estimado: {fmt(node.data.duracao)}</span>
+                {node.data.internal > 0 && <span>🏢 {node.data.internal}m interno</span>}
+                {node.data.external > 0 && <span>🏛️ {node.data.external}m externo</span>}
+                {node.data.cost > 0 && <span>💰 {fmtCurrency(node.data.cost)}</span>}
+              </div>
+            </div>
+            <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none cursor-pointer ml-3">✕</button>
+          </div>
+        </div>
+
+        <form onSubmit={submit} className="px-6 py-5 space-y-5">
+          {/* Status selector */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Status da Etapa</label>
+            <div className="grid grid-cols-3 gap-2">
+              {statusOptions.map(({ key, icon, label, activeClass }) => (
+                <button key={key} type="button" onClick={() => setStatus(key)}
+                  className={`py-2.5 px-2 rounded-xl text-xs font-semibold border-2 transition-all cursor-pointer ${
+                    status === key ? activeClass : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}>
+                  <div className="text-base mb-0.5">{icon}</div>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Real data section — visible when not pending */}
+          {status !== 'pending' && (
+            <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-4 animate-slideDown">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Dados Reais</p>
+              <div className={`grid gap-3 ${status === 'completed' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Data de Início</label>
+                  <input type="date" value={startedAt} onChange={(e) => setStartedAt(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-400" />
+                </div>
+                {status === 'completed' && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Data de Conclusão</label>
+                    <input type="date" value={completedAt} onChange={(e) => setCompletedAt(e.target.value)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-green-400" />
+                  </div>
+                )}
+              </div>
+
+              {status === 'completed' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Duração Real (meses)</label>
+                  <input type="number" min="0" step="0.5" value={actualDuration}
+                    onChange={(e) => setActualDuration(e.target.value)}
+                    placeholder="Ex: 4,5"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:ring-2 focus:ring-green-400 outline-none" />
+                  {diff !== null && (
+                    <p className={`text-xs mt-1.5 font-medium ${
+                      diff > 0 ? 'text-red-500' : diff < 0 ? 'text-green-600' : 'text-gray-500'
+                    }`}>
+                      {diff > 0
+                        ? `⚠ ${fmtTotal(diff)}m acima do estimado`
+                        : diff < 0
+                        ? `✅ ${fmtTotal(Math.abs(diff))}m abaixo do estimado`
+                        : '✓ Exatamente dentro do prazo'}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  {status === 'completed' ? 'Como foi? (descrição, dificuldades, lições)' : 'Observações'}
+                </label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+                  placeholder={status === 'completed'
+                    ? 'Descreva como foi o processo, dificuldades encontradas, lições aprendidas...'
+                    : 'Observações sobre o andamento...'}
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-blue-400 outline-none resize-none" />
+              </div>
             </div>
           )}
-          <div className="flex justify-end gap-2 mt-5">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 cursor-pointer">Cancelar</button>
-            <button type="submit" className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700 cursor-pointer">Salvar</button>
+
+          {/* Collapsible: Edit estimated duration */}
+          <div className="border-t border-gray-100 pt-3">
+            <button type="button" onClick={() => setShowEditEstimate((v) => !v)}
+              className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 cursor-pointer">
+              <span style={{ display: 'inline-block', transform: showEditEstimate ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}>▶</span>
+              Editar duração estimada
+            </button>
+            {showEditEstimate && (
+              <div className="mt-3 animate-slideDown">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Duração estimada (meses)</label>
+                <input type="number" min="0" step="0.5"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-800 focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={estimatedDur} onChange={(e) => setEstimatedDur(e.target.value)} />
+                <p className="text-[10px] text-gray-400 mt-1">Valores decimais permitidos (ex: 4,5)</p>
+                {node.data.internal > 0 && (
+                  <div className="mt-2 p-2.5 bg-gray-50 rounded-lg text-xs text-gray-600">
+                    <p>🏢 Tempo Interno (Victa): <strong>{node.data.internal}m</strong></p>
+                    <p>🏛️ Tempo Externo (Órgão): <strong>{node.data.external}m</strong></p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex justify-end gap-2 pt-1">
+            <button type="button" onClick={onClose}
+              className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 cursor-pointer">
+              Cancelar
+            </button>
+            <button type="submit"
+              className={`px-5 py-2 text-sm rounded-lg text-white font-medium cursor-pointer transition-colors ${
+                status === 'completed'
+                  ? 'bg-green-600 hover:bg-green-700'
+                  : status === 'in_progress'
+                  ? 'bg-amber-500 hover:bg-amber-600'
+                  : 'bg-blue-600 hover:bg-blue-700'
+              }`}>
+              {status === 'completed' ? '✓ Salvar como Concluído' : status === 'in_progress' ? '⏳ Salvar Andamento' : 'Salvar'}
+            </button>
           </div>
         </form>
       </div>
@@ -516,6 +688,7 @@ function SimulatorTab({ state, setState }) {
   const [regionId, setRegionId] = useState(state.regions[0]?.id || '');
   const [answers, setAnswers] = useState({});
   const [overrides, setOverrides] = useState({});
+  const [completions, setCompletions] = useState({});
   const [selectedNode, setSelectedNode] = useState(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -628,6 +801,7 @@ function SimulatorTab({ state, setState }) {
       }
       if (mode === 'trace') node.data.traceEntries = traceData.get(node.id) || [];
       if (manualTasks.includes(node.id)) node.data.isManual = true;
+      if (completions[node.id]) node.data.completion = completions[node.id];
       node.data.mode = mode;
     });
 
@@ -640,14 +814,16 @@ function SimulatorTab({ state, setState }) {
 
     setNodes(n);
     setEdges(e);
-  }, [taskEntries, regionTasks, criticalIds, uncertainTasks, conditionalTasks, schedule, state.history, regionId, setNodes, setEdges, mode, traceData, manualTasks]);
+  }, [taskEntries, regionTasks, criticalIds, uncertainTasks, conditionalTasks, schedule, state.history, regionId, setNodes, setEdges, mode, traceData, manualTasks, completions]);
 
   const handleNodeClick = useCallback((_ev, node) => {
     if (mode === 'edit') return;
     setSelectedNode(node);
   }, [mode]);
-  const handleSave = useCallback((id, dur) => {
-    setOverrides((p) => ({ ...p, [id]: dur }));
+  const handleSave = useCallback((id, { estimatedDuration, completion }) => {
+    const p = Number.parseFloat(estimatedDuration);
+    if (!Number.isNaN(p) && p >= 0) setOverrides((prev) => ({ ...prev, [id]: p }));
+    if (completion) setCompletions((prev) => ({ ...prev, [id]: completion }));
     setSelectedNode(null);
   }, []);
 
@@ -1032,7 +1208,7 @@ function SimulatorTab({ state, setState }) {
           <Controls showInteractive={false} className="!bg-white !shadow-lg !border !border-gray-200 !rounded-xl" />
         </ReactFlow>
       </main>
-      {selectedNode && <EditModal node={selectedNode} onSave={handleSave} onClose={() => setSelectedNode(null)} />}
+      {selectedNode && <StepDetailModal node={selectedNode} completions={completions} onSave={handleSave} onClose={() => setSelectedNode(null)} />}
     </div>
   );
 }
