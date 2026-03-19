@@ -1,4 +1,5 @@
 const PAGES = [
+  { key: 'dashboard', label: 'Dashboard' },
   { key: 'localities', label: 'Localidades' },
   { key: 'questions', label: 'Perguntas' },
   { key: 'steps', label: 'Etapas' },

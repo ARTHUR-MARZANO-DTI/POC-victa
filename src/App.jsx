@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useCallback } from 'react';
 import Navbar from './components/Navbar';
+import DashboardPage from './pages/DashboardPage';
 import LocalitiesPage from './pages/LocalitiesPage';
 import QuestionsPage from './pages/QuestionsPage';
 import StepsPage from './pages/StepsPage';
@@ -20,7 +21,7 @@ function loadState() {
 
 export default function App() {
   const [state, setState] = useState(() => loadState() || structuredClone(INITIAL_STATE));
-  const [currentPage, setCurrentPage] = useState('simulations');
+  const [currentPage, setCurrentPage] = useState('dashboard');
   const [activeSim, setActiveSim] = useState(null);
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function App() {
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <Navbar currentPage={currentPage} onNavigate={navigate} />
       <main className="flex-1 overflow-auto">
+        {currentPage === 'dashboard' && <DashboardPage {...pageProps} />}
         {currentPage === 'localities' && <LocalitiesPage {...pageProps} />}
         {currentPage === 'questions' && <QuestionsPage {...pageProps} />}
         {currentPage === 'steps' && <StepsPage {...pageProps} />}
